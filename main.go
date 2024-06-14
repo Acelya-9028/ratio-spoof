@@ -41,7 +41,7 @@ required arguments:
 	  
 <INITIAL_DOWNLOADED> and <INITIAL_UPLOADED> must be in %, b, kb, mb, gb, tb
 <DOWNLOAD_SPEED> and <UPLOAD_SPEED> must be in kbps, mbps
-[CLIENT_CODE] options: qbit-4.0.3, qbit-4.3.3
+[CLIENT_CODE] options: qbit-4.0.3, qbit-4.3.3, qbit-4.3.9, qbit-4.6.3, qbit-4.6.5, qbit-5.0.0
 `)
 	}
 
