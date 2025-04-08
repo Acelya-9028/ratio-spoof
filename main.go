@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/ap-pauloafonso/ratio-spoof/input"
-	"github.com/ap-pauloafonso/ratio-spoof/printer"
-	"github.com/ap-pauloafonso/ratio-spoof/ratiospoof"
+	"ratio-spoof/input"
+	"ratio-spoof/printer"
+	"ratio-spoof/ratiospoof"
 	"log"
 	"os"
 )
@@ -23,14 +23,16 @@ func main() {
 	port := flag.Int("p", 8999, "a PORT")
 	debug := flag.Bool("debug", false, "")
 	client := flag.String("c", "qbit-4.0.3", "emulated client")
+	waitForLeechers := flag.Bool("wait-leechers", false, "wait for leechers instead of continuing with reduced speed")
 
 	flag.Usage = func() {
 		fmt.Printf("usage: %s -t <TORRENT_PATH> -d <INITIAL_DOWNLOADED> -ds <DOWNLOAD_SPEED> -u <INITIAL_UPLOADED> -us <UPLOAD_SPEED>\n", os.Args[0])
 		fmt.Print(`
 optional arguments:
-	-h           		show this help message and exit
-	-p [PORT]    		change the port number, default: 8999
-	-c [CLIENT_CODE]	change the client emulation, default: qbit-4.0.3
+	-h					show this help message and exit
+	-p [PORT]			change the port number, default: 8999
+	-c [CLIENT_CODE]	the client emulation, default: qbit-4.0.3
+	-wait-leechers		wait for leechers instead of uploading with normal speed
 	  
 required arguments:
 	-t  <TORRENT_PATH>     
@@ -62,6 +64,7 @@ required arguments:
 			Port:              *port,
 			Debug:             *debug,
 			Client:            *client,
+			WaitForLeechers:   *waitForLeechers,
 		})
 
 	if err != nil {

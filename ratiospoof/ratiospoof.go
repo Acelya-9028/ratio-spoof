@@ -3,10 +3,10 @@ package ratiospoof
 import (
 	"errors"
 	"fmt"
-	"github.com/ap-pauloafonso/ratio-spoof/bencode"
-	"github.com/ap-pauloafonso/ratio-spoof/emulation"
-	"github.com/ap-pauloafonso/ratio-spoof/input"
-	"github.com/ap-pauloafonso/ratio-spoof/tracker"
+	"ratio-spoof/bencode"
+	"ratio-spoof/emulation"
+	"ratio-spoof/input"
+	"ratio-spoof/tracker"
 	"log"
 	"math/rand"
 	"os"
@@ -35,6 +35,8 @@ type RatioSpoof struct {
 	Status           string
 	AnnounceHistory  announceHistory
 	Print            bool
+	LastMessage      string
+	SeedStartTime    time.Time
 }
 
 type AnnounceEntry struct {
@@ -74,7 +76,7 @@ func NewRatioSpoofState(input input.InputArgs) (*RatioSpoof, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	return &RatioSpoof{
 		BitTorrentClient: client,
 		TorrentInfo:      torrentInfo,
@@ -83,6 +85,8 @@ func NewRatioSpoofState(input input.InputArgs) (*RatioSpoof, error) {
 		NumWant:          200,
 		Status:           "started",
 		Print:            true,
+		LastMessage:      "",
+		SeedStartTime:    time.Now(),
 	}, nil
 }
 
@@ -118,6 +122,7 @@ func (r *RatioSpoof) Run() {
 	r.Print = false
 	r.gracefullyExit()
 }
+
 func (r *RatioSpoof) firstAnnounce() {
 	r.addAnnounce(r.Input.InitialDownloaded, r.Input.InitialUploaded, calculateBytesLeft(r.Input.InitialDownloaded, r.TorrentInfo.TotalSize), (float32(r.Input.InitialDownloaded)/float32(r.TorrentInfo.TotalSize))*100)
 	r.fireAnnounce(false)
@@ -127,10 +132,12 @@ func (r *RatioSpoof) updateSeedersAndLeechers(resp tracker.TrackerResponse) {
 	r.Seeders = resp.Seeders
 	r.Leechers = resp.Leechers
 }
+
 func (r *RatioSpoof) addAnnounce(currentDownloaded, currentUploaded, currentLeft int, percentDownloaded float32) {
 	r.AnnounceCount++
 	r.AnnounceHistory.pushValueHistory(AnnounceEntry{Count: r.AnnounceCount, Downloaded: currentDownloaded, Uploaded: currentUploaded, Left: currentLeft, PercentDownloaded: percentDownloaded})
 }
+
 func (r *RatioSpoof) fireAnnounce(retry bool) error {
 	lastAnnounce := r.AnnounceHistory.Back().(AnnounceEntry)
 	replacer := strings.NewReplacer("{infohash}", r.TorrentInfo.InfoHashURLEncoded,
@@ -154,6 +161,7 @@ func (r *RatioSpoof) fireAnnounce(retry bool) error {
 	}
 	return nil
 }
+
 func (r *RatioSpoof) generateNextAnnounce() {
 	lastAnnounce := r.AnnounceHistory.Back().(AnnounceEntry)
 	currentDownloaded := lastAnnounce.Downloaded
@@ -165,14 +173,47 @@ func (r *RatioSpoof) generateNextAnnounce() {
 	} else {
 		downloadCandidate = r.TorrentInfo.TotalSize
 	}
-
-	currentUploaded := lastAnnounce.Uploaded
-	randomPiecesUpload := rand.Intn(10-1) + 1
-	uploadCandidate := calculateNextTotalSizeByte(r.Input.UploadSpeed, currentUploaded, r.TorrentInfo.PieceSize, r.AnnounceInterval, 0, randomPiecesUpload)
+	
+	// Calculate base upload amount
+	baseUpload := r.Input.UploadSpeed * r.AnnounceInterval
+	
+	// Calculate upload fluctuation based on multiple factors
+	var fluctuation float64
+	
+	// Base fluctuation between 80% and 120% of base speed
+	baseFluctuation := 0.8 + (rand.Float64() * 0.4)
+	
+	// Adjust based on number of leechers (more leechers = more upload opportunity)
+	leecherFactor := 1.0
+	if r.Leechers > 0 {
+		// More leechers means more potential upload, but with diminishing returns
+		leecherFactor = 1.0 + (float64(r.Leechers) / 100.0)
+		if leecherFactor > 1.5 {
+			leecherFactor = 1.5 // Cap the leecher bonus
+		}
+	} else if r.Input.WaitForLeechers {
+		// If waiting for leechers, set upload to 0 and print warning
+		leecherFactor = 0.0
+		r.LastMessage = "[WARNING] No leechers detected. Waiting for leechers before continuing upload..."
+	}
+	
+	// Combine all factors
+	fluctuation = baseFluctuation * leecherFactor
+	
+	// Calculate final upload amount
+	uploadCandidate := int(float64(baseUpload) * fluctuation)
 
 	leftCandidate := calculateBytesLeft(downloadCandidate, r.TorrentInfo.TotalSize)
 
 	d, u, l := r.BitTorrentClient.Round(downloadCandidate, uploadCandidate, leftCandidate, r.TorrentInfo.PieceSize)
+
+	// Check if we just completed the download
+	if d == r.TorrentInfo.TotalSize && lastAnnounce.Downloaded < r.TorrentInfo.TotalSize {
+		r.Status = "completed"
+	} else if r.Status == "started" || r.Status == "completed" {
+		// After started/completed, use empty event for regular updates
+		r.Status = ""
+	}
 
 	r.addAnnounce(d, u, l, (float32(d)/float32(r.TorrentInfo.TotalSize))*100)
 }

@@ -2,7 +2,7 @@ package printer
 
 import (
 	"fmt"
-	"github.com/ap-pauloafonso/ratio-spoof/ratiospoof"
+	"ratio-spoof/ratiospoof"
 	"os"
 	"os/exec"
 	"runtime"
@@ -40,17 +40,21 @@ func PrintState(state *ratiospoof.RatioSpoof) {
 				retryStr = fmt.Sprintf("(*Retry %v - check your connection)", state.Tracker.RetryAttempt)
 			}
 			fmt.Printf("%s\n", center("  RATIO-SPOOF  ", width-len("  RATIO-SPOOF  "), "#"))
-			fmt.Printf(`
-	Torrent: %v
-	Tracker: %v
-	Seeders: %v
-	Leechers:%v
-	Download Speed: %v/s
-	Upload Speed: %v/s
-	Size: %v
-	Emulation: %v | Port: %v`, state.TorrentInfo.Name, state.TorrentInfo.TrackerInfo.Main, seedersStr, leechersStr, humanReadableSize(float64(state.Input.DownloadSpeed)),
-				humanReadableSize(float64(state.Input.UploadSpeed)), humanReadableSize(float64(state.TorrentInfo.TotalSize)), state.BitTorrentClient.Name, state.Input.Port)
-			fmt.Printf("\n\n%s\n\n", center("  GITHUB.COM/AP-PAULOAFONSO/RATIO-SPOOF  ", width-len("  GITHUB.COM/AP-PAULOAFONSO/RATIO-SPOOF  "), "#"))
+			
+			// Print torrent information using a single Printf statement
+			seedTime := time.Since(state.SeedStartTime)
+			fmt.Printf("\tTorrent: %v\n\tTracker: %v\n\tSeeders: %v\n\tLeechers: %v\n\tDownload Speed: %v/s\n\tUpload Speed: %v/s\n\tSize: %v\n\tEmulation: %v | Port: %v\n\tSeed Time: %s\n\n",
+				state.TorrentInfo.Name,
+				state.TorrentInfo.TrackerInfo.Main,
+				seedersStr,
+				leechersStr,
+				humanReadableSize(float64(state.Input.DownloadSpeed)),
+				humanReadableSize(float64(state.Input.UploadSpeed)),
+				humanReadableSize(float64(state.TorrentInfo.TotalSize)),
+				state.BitTorrentClient.Name,
+				state.Input.Port,
+				fmtDuration(seedTime))
+
 			for i := 0; i <= state.AnnounceHistory.Len()-2; i++ {
 				dequeItem := state.AnnounceHistory.At(i).(ratiospoof.AnnounceEntry)
 				fmt.Printf("#%v downloaded: %v(%.2f%%) | left: %v | uploaded: %v | announced\n", dequeItem.Count, humanReadableSize(float64(dequeItem.Downloaded)), dequeItem.PercentDownloaded, humanReadableSize(float64(dequeItem.Left)), humanReadableSize(float64(dequeItem.Uploaded)))
@@ -65,6 +69,12 @@ func PrintState(state *ratiospoof.RatioSpoof) {
 				humanReadableSize(float64(lastDequeItem.Uploaded)),
 				fmtDuration(remaining),
 				retryStr)
+
+			// Always display the status message if there is one
+			if state.LastMessage != "" {
+				fmt.Printf("\n%s\n", center("  STATUS  ", width-len("  STATUS  "), "#"))
+				fmt.Printf("\n%s\n", state.LastMessage)
+			}
 
 			if state.Input.Debug {
 				fmt.Printf("\n%s\n", center("  DEBUG  ", width-len("  DEBUG  "), "#"))

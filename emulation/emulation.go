@@ -3,7 +3,7 @@ package emulation
 import (
 	"embed"
 	"encoding/json"
-	generator2 "github.com/ap-pauloafonso/ratio-spoof/generator"
+	generator2 "ratio-spoof/generator"
 	"io"
 )
 

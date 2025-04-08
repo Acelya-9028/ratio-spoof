@@ -1,4 +1,4 @@
-module github.com/ap-pauloafonso/ratio-spoof
+module ratio-spoof
 
 go 1.20
 

@@ -1,7 +1,7 @@
 package tracker
 
 import (
-	"github.com/ap-pauloafonso/ratio-spoof/bencode"
+	"ratio-spoof/bencode"
 	"reflect"
 	"testing"
 )
