@@ -7,7 +7,6 @@ on:
     branches: [ master ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,17 +20,12 @@ jobs:
     - name: Build
       run: go build .
 
-
-
     - name: Upload artifact
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: Ratio
         path: .
-
-
-
 
   buildwin:
    runs-on: windows-latest
@@ -46,11 +40,9 @@ jobs:
    - name: Build
      run: go build .
 
-
    - name: Upload artifact
      if: always()
      uses: actions/upload-artifact@v4
      with:
-        name: Ratiowin
+        name: RatioWin
         path: .
-

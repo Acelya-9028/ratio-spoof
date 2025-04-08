@@ -3,7 +3,7 @@ package input
 import (
 	"errors"
 	"fmt"
-	"github.com/ap-pauloafonso/ratio-spoof/bencode"
+	"ratio-spoof/bencode"
 	"math"
 	"strconv"
 	"strings"
@@ -16,24 +16,26 @@ const (
 )
 
 type InputArgs struct {
-	TorrentPath       string
-	InitialDownloaded string
-	DownloadSpeed     string
-	InitialUploaded   string
-	Client            string
-	UploadSpeed       string
-	Port              int
-	Debug             bool
+	Client             string
+	Debug              bool
+	DownloadSpeed      string
+	InitialDownloaded  string
+	InitialUploaded    string
+	Port               int
+	TorrentPath        string
+	UploadSpeed        string
+	WaitForLeechers    bool
 }
 
 type InputParsed struct {
-	TorrentPath       string
-	InitialDownloaded int
-	DownloadSpeed     int
-	InitialUploaded   int
-	UploadSpeed       int
-	Port              int
-	Debug             bool
+	Debug              bool
+	DownloadSpeed      int
+	InitialDownloaded  int
+	InitialUploaded    int
+	Port               int
+	TorrentPath        string
+	UploadSpeed        int
+	WaitForLeechers    bool
 }
 
 var validInitialSufixes = [...]string{"%", "b", "kb", "mb", "gb", "tb"}
@@ -61,12 +63,15 @@ func (i *InputArgs) ParseInput(torrentInfo *bencode.TorrentInfo) (*InputParsed, 
 		return nil, errors.New(fmt.Sprint("port number must be between %i and %i", minPortNumber, maxPortNumber))
 	}
 
-	return &InputParsed{InitialDownloaded: downloaded,
-		DownloadSpeed:   downloadSpeed,
-		InitialUploaded: uploaded,
-		UploadSpeed:     uploadSpeed,
-		Debug:           i.Debug,
-		Port:            i.Port,
+	return &InputParsed{
+		Debug:             i.Debug,
+		DownloadSpeed:     downloadSpeed,
+		InitialDownloaded: downloaded,
+		InitialUploaded:   uploaded,
+		Port:              i.Port,
+		TorrentPath:       i.TorrentPath,
+		UploadSpeed:       uploadSpeed,
+		WaitForLeechers:   i.WaitForLeechers,
 	}, nil
 }
 

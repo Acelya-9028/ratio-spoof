@@ -46,6 +46,33 @@ required arguments:
 * Will start "downloading" with the initial value of 2gb downloaded  if possible at 500kbps speed until it reaches 100% mark.
 * Will start "uploading" with the initial value of 1gb uplodead at 1024kbps (aka 1mb/s) indefinitely.
 
+## Building from Source
+
+### Prerequisites
+- Go 1.20 or later
+- Git
+
+### Steps
+1. Clone the repository:
+```bash
+git clone https://github.com/Acelya-9028/ratio-spoof.git
+cd ratio-spoof
+```
+
+2. Build the project:
+```bash
+go build
+```
+
+The executable will be created in the current directory.
+
+### Building for Multiple Platforms
+To build for multiple platforms (Linux, macOS, and Windows), use the release target:
+```bash
+make release rsversion=v1.0.0
+```
+This will create a zip file in the `out` directory containing binaries for all platforms.
+
 ## Will I get caught using it ?
 Depends on whether you use it carefully, It's a hard task to catch cheaters, but if you start uploading crazy amounts out of nowhere or seeding something with no active leecher on the swarm you may be in risk.
 
