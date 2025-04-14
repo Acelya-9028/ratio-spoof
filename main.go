@@ -8,59 +8,66 @@ import (
 	"ratio-spoof/ratiospoof"
 	"log"
 	"os"
+	"strings"
 )
 
 func main() {
-
 	//required
 	torrentPath := flag.String("t", "", "torrent path")
-	initialDownload := flag.String("d", "", "a INITIAL_DOWNLOADED")
-	downloadSpeed := flag.String("ds", "", "a DOWNLOAD_SPEED")
-	initialUpload := flag.String("u", "", "a INITIAL_UPLOADED")
-	uploadSpeed := flag.String("us", "", "a UPLOAD_SPEED")
+	download := flag.String("d", "100%:0kbps", "initial downloaded percentage and download speed (format: <percentage>:<speed>)")
+	upload := flag.String("u", "0%:0kbps", "initial uploaded percentage and upload speed (format: <percentage>:<speed>)")
 
 	//optional
+	client := flag.String("c", "qbit-5.0.4", "emulated client")
 	port := flag.Int("p", 8999, "a PORT")
 	debug := flag.Bool("debug", false, "")
-	client := flag.String("c", "qbit-4.0.3", "emulated client")
 	waitForLeechers := flag.Bool("wait-leechers", false, "wait for leechers instead of continuing with reduced speed")
 
 	flag.Usage = func() {
-		fmt.Printf("usage: %s -t <TORRENT_PATH> -d <INITIAL_DOWNLOADED> -ds <DOWNLOAD_SPEED> -u <INITIAL_UPLOADED> -us <UPLOAD_SPEED>\n", os.Args[0])
+		fmt.Printf("usage: %s -t <TORRENT_PATH> -d <INITIAL_DOWNLOADED>:<DOWNLOAD_SPEED> -u <INITIAL_UPLOADED>:<UPLOAD_SPEED>\n", os.Args[0])
 		fmt.Print(`
 optional arguments:
 	-h					show this help message and exit
 	-p [PORT]			change the port number, default: 8999
-	-c [CLIENT_CODE]	the client emulation, default: qbit-4.0.3
+	-c [CLIENT_CODE]	the client emulation, default: qbit-5.0.4
 	-wait-leechers		wait for leechers instead of uploading with normal speed
 	  
 required arguments:
 	-t  <TORRENT_PATH>     
-	-d  <INITIAL_DOWNLOADED> 
-	-ds <DOWNLOAD_SPEED>						  
-	-u  <INITIAL_UPLOADED> 
-	-us <UPLOAD_SPEED> 						  
+	-d  <INITIAL_DOWNLOADED>:<DOWNLOAD_SPEED> 
+	-u  <INITIAL_UPLOADED>:<UPLOAD_SPEED> 
 	  
-<INITIAL_DOWNLOADED> and <INITIAL_UPLOADED> must be in %, b, kb, mb, gb, tb
-<DOWNLOAD_SPEED> and <UPLOAD_SPEED> must be in kbps, mbps
+<INITIAL_DOWNLOADED> and <INITIAL_UPLOADED> must be in %
+<DOWNLOAD_SPEED> and <UPLOAD_SPEED> must be in kbps or mbps
 [CLIENT_CODE] options: qbit-4.0.3, qbit-4.3.3, qbit-4.3.9, qbit-4.6.3, qbit-4.6.5, qbit-5.0.0, qbit-5.0.4
 `)
 	}
 
 	flag.Parse()
 
-	if *torrentPath == "" || *initialDownload == "" || *downloadSpeed == "" || *initialUpload == "" || *uploadSpeed == "" {
+	if *torrentPath == "" {
 		flag.Usage()
 		return
+	}
+
+	// Parse download and upload parameters
+	initialDownloaded, downloadSpeed, err := parseCombinedParameter(*download)
+	if err != nil {
+		log.Fatalf("Error parsing download parameter: %v", err)
+	}
+
+	initialUploaded, uploadSpeed, err := parseCombinedParameter(*upload)
+	if err != nil {
+		log.Fatalf("Error parsing upload parameter: %v", err)
 	}
 
 	r, err := ratiospoof.NewRatioSpoofState(
 		input.InputArgs{
 			TorrentPath:       *torrentPath,
-			InitialDownloaded: *initialDownload,
-			DownloadSpeed:     *downloadSpeed,
-			InitialUploaded:   *initialUpload,
-			UploadSpeed:       *uploadSpeed,
+			InitialDownloaded: initialDownloaded,
+			DownloadSpeed:     downloadSpeed,
+			InitialUploaded:   initialUploaded,
+			UploadSpeed:       uploadSpeed,
 			Port:              *port,
 			Debug:             *debug,
 			Client:            *client,
@@ -73,5 +80,22 @@ required arguments:
 
 	go printer.PrintState(r)
 	r.Run()
+}
 
+func parseCombinedParameter(param string) (string, string, error) {
+	parts := strings.Split(param, ":")
+	if len(parts) == 1 {
+		// If only speed is provided, use default percentage
+		if strings.HasSuffix(parts[0], "kbps") || strings.HasSuffix(parts[0], "mbps") {
+			if strings.HasPrefix(param, "d") {
+				return "100%", parts[0], nil
+			}
+			return "0%", parts[0], nil
+		}
+		return "", "", fmt.Errorf("invalid parameter format: %s", param)
+	}
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid parameter format: %s", param)
+	}
+	return parts[0], parts[1], nil
 }

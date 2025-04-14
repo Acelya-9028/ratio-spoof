@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"ratio-spoof/bencode"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -38,7 +37,6 @@ type InputParsed struct {
 	WaitForLeechers    bool
 }
 
-var validInitialSufixes = [...]string{"%", "b", "kb", "mb", "gb", "tb"}
 var validSpeedSufixes = [...]string{"kbps", "mbps"}
 
 func (i *InputArgs) ParseInput(torrentInfo *bencode.TorrentInfo) (*InputParsed, error) {
@@ -77,7 +75,6 @@ func (i *InputArgs) ParseInput(torrentInfo *bencode.TorrentInfo) (*InputParsed, 
 
 func checkSpeedSufix(input string) (valid bool, suffix string) {
 	for _, v := range validSpeedSufixes {
-
 		if strings.HasSuffix(strings.ToLower(input), v) {
 			return true, input[len(input)-4:]
 		}
@@ -86,10 +83,21 @@ func checkSpeedSufix(input string) (valid bool, suffix string) {
 }
 
 func extractInputInitialByteCount(initialSizeInput string, totalBytes int, errorIfHigher bool) (int, error) {
-	byteCount, err := strSize2ByteSize(initialSizeInput, totalBytes)
-	if err != nil {
-		return 0, err
+	if !strings.HasSuffix(initialSizeInput, "%") {
+		return 0, errors.New("initial value must be in percentage")
 	}
+	
+	percent, err := strconv.ParseFloat(initialSizeInput[:len(initialSizeInput)-1], 64)
+	if err != nil {
+		return 0, errors.New("invalid percentage value")
+	}
+	
+	if percent < 0 || percent > 100 {
+		return 0, errors.New("percentage must be between 0 and 100")
+	}
+	
+	byteCount := int(float64(totalBytes) * percent / 100)
+	
 	if errorIfHigher && byteCount > totalBytes {
 		return 0, errors.New("initial downloaded can not be higher than the torrent size")
 	}
@@ -121,73 +129,4 @@ func extractInputByteSpeed(initialSpeedInput string) (int, error) {
 	}
 	ret := int(speedVal)
 	return ret, nil
-}
-
-func extractByteSizeNumber(strWithSufix string, sufixLength, power int) (int, error) {
-	v, err := strconv.ParseFloat(strWithSufix[:len(strWithSufix)-sufixLength], 64)
-	if err != nil {
-		return 0, err
-	}
-	result := v * math.Pow(1024, float64(power))
-	return int(result), nil
-}
-
-func strSize2ByteSize(input string, totalSize int) (int, error) {
-	lowerInput := strings.ToLower(input)
-	invalidSizeError := errors.New("invalid input size")
-	switch {
-	case strings.HasSuffix(lowerInput, "kb"):
-		{
-			v, err := extractByteSizeNumber(lowerInput, 2, 1)
-			if err != nil {
-				return 0, invalidSizeError
-			}
-			return v, nil
-		}
-	case strings.HasSuffix(lowerInput, "mb"):
-		{
-			v, err := extractByteSizeNumber(lowerInput, 2, 2)
-			if err != nil {
-				return 0, invalidSizeError
-			}
-			return v, nil
-		}
-	case strings.HasSuffix(lowerInput, "gb"):
-		{
-			v, err := extractByteSizeNumber(lowerInput, 2, 3)
-			if err != nil {
-				return 0, invalidSizeError
-			}
-			return v, nil
-		}
-	case strings.HasSuffix(lowerInput, "tb"):
-		{
-			v, err := extractByteSizeNumber(lowerInput, 2, 4)
-			if err != nil {
-				return 0, invalidSizeError
-			}
-			return v, nil
-		}
-	case strings.HasSuffix(lowerInput, "b"):
-		{
-			v, err := extractByteSizeNumber(lowerInput, 1, 0)
-			if err != nil {
-				return 0, invalidSizeError
-			}
-			return v, nil
-		}
-	case strings.HasSuffix(lowerInput, "%"):
-		{
-			v, err := strconv.ParseFloat(lowerInput[:len(lowerInput)-1], 64)
-			if v < 0 || v > 100 || err != nil {
-				return 0, errors.New("percent value must be in (0-100)")
-			}
-			result := int(float64(v/100) * float64(totalSize))
-
-			return result, nil
-		}
-
-	default:
-		return 0, errors.New("Size not found")
-	}
 }
