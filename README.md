@@ -33,7 +33,7 @@ required arguments:
 	  
 <INITIAL_DOWNLOADED> and <INITIAL_UPLOADED> must be in %
 <DOWNLOAD_SPEED> and <UPLOAD_SPEED> must be in kbps or mbps
-[CLIENT_CODE] options: qbit-4.0.3, qbit-4.3.3, qbit-4.3.9, qbit-4.6.3, qbit-4.6.5, qbit-5.0.0, qbit-5.0.4
+[CLIENT_CODE] options: qbit-4.0.3, qbit-4.3.9, qbit-4.6.5, qbit-5.0.4
 ```
 
 Examples:
