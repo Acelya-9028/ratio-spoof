@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	generator2 "ratio-spoof/generator"
 	"io"
+	"io/fs"
+	"sort"
+	"strings"
 )
 
 type ClientInfo struct {
@@ -74,6 +77,29 @@ func NewEmulation(code string) (*Emulation, error) {
 //go:embed static
 var staticFiles embed.FS
 
+// clientVersionMap contains all the available client versions
+var clientVersionMap = initClientVersionMap()
+
+// initClientVersionMap load client versions from static
+func initClientVersionMap() map[string]struct{} {
+	clientMap := make(map[string]struct{})
+	
+	fs.WalkDir(staticFiles, "static", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		
+		if !d.IsDir() && strings.HasSuffix(d.Name(), ".json") {
+			clientName := strings.TrimSuffix(d.Name(), ".json")
+			clientMap[clientName] = struct{}{}
+		}
+		
+		return nil
+	})
+	
+	return clientMap
+}
+
 func extractClient(code string) (*ClientInfo, error) {
 
 	f, err := staticFiles.Open("static/" + code + ".json")
@@ -92,4 +118,17 @@ func extractClient(code string) (*ClientInfo, error) {
 	json.Unmarshal(bytes, &client)
 
 	return &client, nil
+}
+
+// GetAvailableClients returns all a list of available clients
+func GetAvailableClients() []string {
+	clients := []string{}
+	
+	for client := range clientVersionMap {
+		clients = append(clients, client)
+	}
+	
+	sort.Strings(clients)
+	
+	return clients
 }

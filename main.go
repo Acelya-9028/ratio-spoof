@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"ratio-spoof/emulation"
 )
 
 func main() {
@@ -18,7 +19,12 @@ func main() {
 	upload := flag.String("u", "0%:0kbps", "initial uploaded percentage and upload speed (format: <percentage>:<speed>)")
 
 	//optional
-	client := flag.String("c", "qbit-5.0.4", "emulated client")
+	availableClients := emulation.GetAvailableClients()
+	defaultClient := "qbit-5.0.4"
+	if len(availableClients) > 0 {
+		defaultClient = availableClients[0]
+	}
+	client := flag.String("c", defaultClient, "emulated client")
 	port := flag.Int("p", 8999, "a PORT")
 	debug := flag.Bool("debug", false, "")
 	waitForLeechers := flag.Bool("wait-leechers", false, "wait for leechers instead of continuing with reduced speed")
@@ -29,7 +35,7 @@ func main() {
 optional arguments:
 	-h					show this help message and exit
 	-p [PORT]			change the port number, default: 8999
-	-c [CLIENT_CODE]	the client emulation, default: qbit-5.0.4
+	-c [CLIENT_CODE]	the client emulation, default: ` + defaultClient + `
 	-wait-leechers		wait for leechers instead of uploading with normal speed
 	  
 required arguments:
@@ -39,7 +45,7 @@ required arguments:
 	  
 <INITIAL_DOWNLOADED> and <INITIAL_UPLOADED> must be in %
 <DOWNLOAD_SPEED> and <UPLOAD_SPEED> must be in kbps or mbps
-[CLIENT_CODE] options: qbit-4.0.3, qbit-4.3.9, qbit-4.6.5, qbit-5.0.4
+[CLIENT_CODE] options: ` + strings.Join(availableClients, ", ") + `
 `)
 	}
 
@@ -48,6 +54,18 @@ required arguments:
 	if *torrentPath == "" {
 		flag.Usage()
 		return
+	}
+	
+	clientFound := false
+	for _, c := range availableClients {
+		if *client == c {
+			clientFound = true
+			break
+		}
+	}
+	
+	if !clientFound && len(availableClients) > 0 {
+		log.Printf("Warning: Client '%s' not found. Available clients: %s", *client, strings.Join(availableClients, ", "))
 	}
 
 	// Parse download and upload parameters
