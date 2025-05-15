@@ -24,11 +24,11 @@ optional arguments:
 	-h			show this help message and exit
 	-p [PORT]		change the port number, default: 8999
 	-c [CLIENT_CODE]	the client emulation, default: qbit-5.0.4
-	-wait-leechers		wait for leechers instead of uploading with normal speed
+	-wait-leechers		pause upload and wait if there are no leechers
 	  
 required arguments:
-	-t  <TORRENT_PATH>     
-	-d  <INITIAL_DOWNLOADED>:<DOWNLOAD_SPEED> 
+	-t  <TORRENT_PATH>
+	-d  <INITIAL_DOWNLOADED>:<DOWNLOAD_SPEED>
 	-u  <INITIAL_UPLOADED>:<UPLOAD_SPEED> 
 	  
 <INITIAL_DOWNLOADED> and <INITIAL_UPLOADED> must be in %
@@ -47,8 +47,8 @@ Examples:
 ```
 ./ratio-spoof -t <TORRENT_PATH> -d 30mbps
 ```
-* Same as `./ratio-spoof -t <TORRENT_PATH> -d 100%:30mbps -u 0%:0kbps`
-* Will start "downloading" with the initial value of 100% of the torrent total size at 30 mbps speed.
+* Same as `./ratio-spoof -t <TORRENT_PATH> -d 0%:30mbps -u 0%:0kbps`
+* Will start "downloading" with the initial value of 0% of the torrent total size at 30 mbps speed.
 * Will not upload anything.
 
 ```
